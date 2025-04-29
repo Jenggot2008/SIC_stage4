@@ -6,3 +6,4 @@ fastembed==0.2.3
 google-generativeai==0.3.2
 python-dotenv==1.0.1
 streamlit==1.30.0
+sqlite3==3.35.0
