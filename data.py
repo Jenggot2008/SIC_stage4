@@ -4,7 +4,7 @@ import streamlit as st
 import google.generativeai as genai
 from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain.chains import RetrievalQA
-from langchain.vectorstores import FAISS, Chroma
+from langchain_community.vectorstores import FAISS, Chroma
 from langchain.schema import Document
 import time
 
@@ -70,9 +70,6 @@ def init_vectorstore():
         for file in os.listdir(PERSIST_DIRECTORY):
             os.remove(os.path.join(PERSIST_DIRECTORY, file))
     
-    # Gunakan FAISS untuk menyimpan vektor
-    vector_store = FAISS(embedding_function=embeddings)
-    
     # Buat dokumen lebih rinci untuk setiap item sampah
     sampah_list = get_sampah()
     documents = []
@@ -100,9 +97,9 @@ def init_vectorstore():
         )
     ])
     
-    # Tambahkan dokumen ke vector store
-    vector_store.add_documents(documents)
-    vector_store.persist(directory=PERSIST_DIRECTORY)
+    # Buat FAISS index dari dokumen
+    vector_store = FAISS.from_documents(documents, embeddings)
+    vector_store.save_local(PERSIST_DIRECTORY)
     return vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 5})
 
 retriever = init_vectorstore()
