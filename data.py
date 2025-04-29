@@ -4,7 +4,7 @@ import streamlit as st
 import google.generativeai as genai
 from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain.chains import RetrievalQA
-from langchain.vectorstores import Chroma
+from langchain.vectorstores import FAISS, Chroma
 from langchain.schema import Document
 import time
 
@@ -17,7 +17,7 @@ genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
 
 # Path dan direktori
 DB_PATH = "database.db"
-PERSIST_DIRECTORY = "./chroma_langchain_newest"
+PERSIST_DIRECTORY = "./faiss_langchain_newest"
 os.makedirs(PERSIST_DIRECTORY, exist_ok=True)
 
 # Inisialisasi Database dengan data lebih lengkap
@@ -60,7 +60,7 @@ def get_sampah():
     conn.close()
     return data
 
-# Inisialisasi Vector Store dengan dokumen lebih deskriptif
+# Inisialisasi Vector Store dengan dokumen lebih deskriptif menggunakan FAISS
 @st.cache_resource
 def init_vectorstore():
     embeddings = FastEmbedEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
@@ -70,9 +70,8 @@ def init_vectorstore():
         for file in os.listdir(PERSIST_DIRECTORY):
             os.remove(os.path.join(PERSIST_DIRECTORY, file))
     
-    vector_store = Chroma(collection_name="sampah_collection", 
-                         embedding_function=embeddings, 
-                         persist_directory=PERSIST_DIRECTORY)
+    # Gunakan FAISS untuk menyimpan vektor
+    vector_store = FAISS(embedding_function=embeddings)
     
     # Buat dokumen lebih rinci untuk setiap item sampah
     sampah_list = get_sampah()
@@ -101,8 +100,9 @@ def init_vectorstore():
         )
     ])
     
+    # Tambahkan dokumen ke vector store
     vector_store.add_documents(documents)
-    vector_store.persist()
+    vector_store.persist(directory=PERSIST_DIRECTORY)
     return vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 5})
 
 retriever = init_vectorstore()
@@ -161,13 +161,11 @@ def ask_gemini(question):
 st.title("♻️ Chatbot Kategori Sampah")
 
 # Tambahkan contoh pertanyaan
-st.markdown("""
-**Contoh pertanyaan:**
-- Botol plastik termasuk sampah apa?
-- Bagaimana dengan daun kering?
-- Apa yang dimaksud dengan sampah B3?
-- Termasuk kategori apa baterai bekas?
-""")
+st.markdown("""**Contoh pertanyaan:** 
+- Botol plastik termasuk sampah apa? 
+- Bagaimana dengan daun kering? 
+- Apa yang dimaksud dengan sampah B3? 
+- Termasuk kategori apa baterai bekas?""")
 
 pertanyaan = st.text_input("Masukkan pertanyaan Anda tentang jenis sampah:")
 
@@ -176,11 +174,9 @@ if pertanyaan:
         jawaban = ask_gemini(pertanyaan)
         if "tidak memiliki informasi cukup" in jawaban or "tidak tahu" in jawaban:
             st.warning(jawaban)
-            st.info("""
-            Tips: Coba gunakan nama yang lebih spesifik, seperti:
+            st.info("""Tips: Coba gunakan nama yang lebih spesifik, seperti:
             - 'Botol minuman plastik' daripada 'botol'
-            - 'Sisa sayuran' daripada 'sisa makanan'
-            """)
+            - 'Sisa sayuran' daripada 'sisa makanan'""")
         elif "Terjadi kesalahan" in jawaban:
             st.error(jawaban)
         else:
