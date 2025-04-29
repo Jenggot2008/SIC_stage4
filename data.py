@@ -1,43 +1,109 @@
-import sqlite3
 import os
+import streamlit as st
+import google.generativeai as genai
+from data import init_db, get_sampah
+from langchain_community.embeddings import FastEmbedEmbeddings
+from langchain_community.vectorstores import Chroma
+from langchain_core.documents import Document
+from langchain_core.retrievers import BaseRetriever
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
 
-DB_PATH = "database.db"
+# Initialize
+st.set_page_config(page_title="Chatbot Sampah", page_icon="♻️")
+init_db()
 
-def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    
-    c.execute('''CREATE TABLE IF NOT EXISTS sampah (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nama TEXT,
-                jenis TEXT,
-                deskripsi TEXT)''')
-    
-    c.execute("SELECT COUNT(*) FROM sampah")
-    if c.fetchone()[0] == 0:
-        sampah_data = [
-            ("Daun", "Organik", "Daun-daunan yang gugur dari tanaman"),
-            ("Sisa Makanan", "Organik", "Makanan sisa atau bahan makanan yang sudah basi"),
-            ("Botol Plastik", "Non-Organik", "Botol minuman berbahan plastik"),
-            ("Kertas", "Non-Organik", "Berbagai jenis kertas bekas"),
-            ("Kayu", "Organik", "Potongan kayu atau serbuk kayu"),
-            ("Kain", "Non-Organik", "Pakaian bekas atau potongan kain"),
-            ("Kaleng", "Non-Organik", "Kaleng minuman atau makanan"),
-            ("Karet", "Non-Organik", "Barang-barang berbahan karet"),
-            ("Kardus", "Non-Organik", "Kardus bekas kemasan"),
-            ("Baterai", "B3", "Baterai bekas termasuk limbah berbahaya"),
-            ("Elektronik", "B3", "Barang elektronik rusak"),
-            ("Kaca", "Non-Organik", "Botol kaca atau pecahan kaca")
-        ]
-        c.executemany("INSERT INTO sampah (nama, jenis, deskripsi) VALUES (?, ?, ?)", sampah_data)
-    
-    conn.commit()
-    conn.close()
+# Config
+os.environ["GOOGLE_API_KEY"] = "AIzaSyAjtK5VMleflxeMmJsRRZHVgGK2tJPKGDA"
+genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+PERSIST_DIRECTORY = "./chroma_db"
 
-def get_sampah():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT id, nama, jenis, deskripsi FROM sampah")
-    data = [{"id": row[0], "nama": row[1], "jenis": row[2], "deskripsi": row[3]} for row in c.fetchall()]
-    conn.close()
-    return data
+@st.cache_resource
+def init_vectorstore():
+    embeddings = FastEmbedEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    
+    # Clean existing data
+    if os.path.exists(PERSIST_DIRECTORY):
+        import shutil
+        shutil.rmtree(PERSIST_DIRECTORY)
+    
+    # Create documents
+    documents = []
+    for item in get_sampah():
+        documents.append(Document(
+            page_content=f"Nama: {item['nama']}\nJenis: {item['jenis']}\nDeskripsi: {item['deskripsi']}",
+            metadata={"source": item['nama'], "jenis": item['jenis']}
+        ))
+    
+    # Add general knowledge
+    documents.extend([
+        Document(
+            page_content="Sampah organik: berasal dari makhluk hidup, dapat terurai alami",
+            metadata={"source": "definisi_organik", "jenis": "informasi_umum"}
+        ),
+        Document(
+            page_content="Sampah non-organik: tidak terurai alami, biasanya sintetis",
+            metadata={"source": "definisi_nonorganik", "jenis": "informasi_umum"}
+        ),
+        Document(
+            page_content="Sampah B3 (Bahan Berbahaya Beracun): zat berbahaya untuk kesehatan dan lingkungan",
+            metadata={"source": "definisi_b3", "jenis": "informasi_umum"}
+        )
+    ])
+    
+    return Chroma.from_documents(
+        documents=documents,
+        embedding=embeddings,
+        persist_directory=PERSIST_DIRECTORY
+    )
+
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
+
+def ask_gemini(question):
+    vectorstore = init_vectorstore()
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+    
+    template = """Anda adalah ahli pengelolaan sampah. Jawablah pertanyaan berdasarkan konteks berikut:
+    
+    {context}
+    
+    Pertanyaan: {question}
+    
+    Format jawaban:
+    1. Identifikasi jenis sampah
+    2. Kategori (Organik/Non-Organik/B3)
+    3. Penjelasan singkat
+    4. Sumber informasi
+    
+    Jika tidak tahu, jawab: "Maaf, saya tidak memiliki informasi tentang itu."
+    """
+    
+    prompt = ChatPromptTemplate.from_template(template)
+    
+    chain = (
+        {"context": retriever | format_docs, "question": RunnablePassthrough()}
+        | prompt
+        | StrOutputParser()
+    )
+    
+    try:
+        return chain.invoke(question)
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+# UI
+st.title("♻️ Chatbot Kategori Sampah")
+st.markdown("""
+**Contoh pertanyaan:**
+- Botol plastik termasuk sampah apa?
+- Bagaimana dengan daun kering?
+- Apa itu sampah B3?
+""")
+
+question = st.text_input("Tanya tentang jenis sampah:")
+if question:
+    with st.spinner("Mencari jawaban..."):
+        answer = ask_gemini(question)
+        st.success(answer)
