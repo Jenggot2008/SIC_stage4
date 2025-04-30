@@ -71,8 +71,8 @@ def init_vectorstore():
             os.remove(os.path.join(PERSIST_DIRECTORY, file))
     
     vector_store = Chroma(collection_name="sampah_collection", 
-                         embedding_function=embeddings, 
-                         persist_directory=PERSIST_DIRECTORY)
+                         embedding_function=embeddings
+                         )
     
     # Buat dokumen lebih rinci untuk setiap item sampah
     sampah_list = get_sampah()
@@ -102,7 +102,6 @@ def init_vectorstore():
     ])
     
     vector_store.add_documents(documents)
-    vector_store.persist()
     return vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 5})
 
 retriever = init_vectorstore()
