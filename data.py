@@ -1,5 +1,5 @@
 import os
-import sys sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+import sqlite
 import streamlit as st
 import google.generativeai as genai
 from langchain_community.embeddings import FastEmbedEmbeddings
