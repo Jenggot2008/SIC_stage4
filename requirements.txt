@@ -1,26 +1,31 @@
-# === STREAMLIT & ENV ===
-streamlit==1.32.0
-rich==13.7.1
+# Langchain dan LLM
+langchain==0.1.6
+langchain_community==0.0.19
+langchain_core==0.1.22
+google-generativeai==0.3.2
+
+# Embedding dan vektor
+chromadb==0.4.24
+fastembed==0.2.3
+
+# Utilitas
 python-dotenv==1.0.1
+rich==13.7.1
 
-# === AI CORE ===
-torch==2.2.1
-transformers==4.37.2
-sentence-transformers==2.2.2
+# Web dan tampilan
+streamlit==1.30.0
+streamlit-folium==0.18.0
+folium==0.14.0
 
-# === VECTOR STORE ===
-faiss-cpu==1.7.2
-chromadb==0.4.22
-pysqlite3-binary==0.5.2
-
-# === COMPUTER VISION ===
-ultralytics==8.1.27
-opencv-python-headless==4.9.0.80
-pillow==10.1.0
-
-# === UTILITAS ===
-numpy==1.26.4
+# Lokasi & Permintaan HTTP
+geocoder==1.38.1
 requests==2.31.0
 
-# === PIP EXTRA INDEX UNTUK TORCH CPU ===
---extra-index-url https://download.pytorch.org/whl/cpu
+# CV dan AI deteksi objek
+opencv-python==4.7.0.72  # Gunakan salah satu versi, ini yang lebih baru
+ultralytics==8.0.83
+numpy==1.24.2
+Pillow==9.3.0
+
+# SQLite
+pysqlite3-binary==0.5.2
