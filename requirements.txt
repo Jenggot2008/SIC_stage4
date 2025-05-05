@@ -1,23 +1,26 @@
+# === STREAMLIT & ENV ===
 streamlit==1.32.0
+rich==13.7.1
 python-dotenv==1.0.1
 
-# AI Core
+# === AI CORE ===
 torch==2.2.1
 transformers==4.37.2
 sentence-transformers==2.2.2
 
-# Vector Stores
+# === VECTOR STORE ===
 faiss-cpu==1.7.2
 chromadb==0.4.22
+pysqlite3-binary==0.5.2
 
-# Computer Vision
+# === COMPUTER VISION ===
 ultralytics==8.1.27
 opencv-python-headless==4.9.0.80
 pillow==10.1.0
 
-# Utilitas
+# === UTILITAS ===
 numpy==1.26.4
 requests==2.31.0
 
-# Index URL
+# === PIP EXTRA INDEX UNTUK TORCH CPU ===
 --extra-index-url https://download.pytorch.org/whl/cpu
