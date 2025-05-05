@@ -383,10 +383,10 @@ def get_location():
     components.html(loc_js, height=0)
     return st.text_input("Location", key="location")
 
-location = get_location()
-if location:
-    lat, lng = map(float, location.split(','))
-    st.session_state.driver_location = [lat, lng]
+#location = get_location()
+#if location:
+    #lat, lng = map(float, location.split(','))
+    #st.session_state.driver_location = [lat, lng]
     
         # Dashboard Overview
         st.subheader("📊 Dashboard Pemantauan")
