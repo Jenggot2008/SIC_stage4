@@ -69,6 +69,8 @@ def get_ubidots_value(variable):
 # Halaman User
 def halaman_user():
     st.title("♻️ Monitoring Sampah")
+    
+    # Mendapatkan data sampah dari Ubidots
     organik = get_ubidots_value("sampah_organik")
     anorganik = get_ubidots_value("sampah_anorganik")
     b3 = get_ubidots_value("sampah_b3")
@@ -79,19 +81,23 @@ def halaman_user():
         st.metric("Sampah B3", f"{int(b3)} item")
 
     st.subheader("📷 Deteksi Kamera (YOLO)")
-    URL = "http://192.168.153.238/cam-mid.jpg"  # Sesuaikan IP
-    MODEL_PATH = "yolo11n.pt"
+    
+    # URL kamera yang digunakan untuk mengambil gambar
+    URL = "http://192.168.153.238/cam-mid.jpg"  # Sesuaikan IP dengan kamera yang digunakan
+    MODEL_PATH = "yolo11n.pt"  # Path ke model YOLO yang sudah dilatih
+    
+    # Memuat model YOLO
     model = YOLO(MODEL_PATH)
 
     if st.button("🔍 Jalankan Deteksi"):
         try:
-            # Ambil gambar
+            # Ambil gambar dari URL
             img_resp = urllib.request.urlopen(URL, timeout=2)
             img_np = np.array(bytearray(img_resp.read()), dtype=np.uint8)
             img = cv2.imdecode(img_np, cv2.IMREAD_COLOR)
-            img = cv2.flip(img, 0)
-
-            # Deteksi YOLO
+            img = cv2.flip(img, 0)  # Membalikkan gambar jika perlu
+            
+            # Deteksi objek menggunakan YOLO
             results = model(img, stream=True)
             for result in results:
                 boxes = result.boxes
@@ -100,13 +106,17 @@ def halaman_user():
                     conf = float(box.conf[0])
                     cls_id = int(box.cls[0])
                     label = model.names[cls_id]
+                    
+                    # Menambahkan bounding box dan label ke gambar
                     cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 1)
                     cv2.putText(img, f"{label} {conf:.2f}", (x1, y1 - 5),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
 
-            # Simpan dan tampilkan gambar hasil deteksi
+            # Menyimpan gambar hasil deteksi ke sementara file
             _, output_img = tempfile.mkstemp(suffix=".jpg")
             cv2.imwrite(output_img, img)
+            
+            # Menampilkan gambar hasil deteksi di Streamlit
             st.image(output_img, caption="Deteksi Kamera (YOLO)", use_column_width=True)
         except Exception as e:
             st.error(f"❌ Gagal mengambil atau memproses gambar: {e}")
