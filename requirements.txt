@@ -9,3 +9,5 @@ streamlit==1.30.0
 pysqlite3-binary==0.5.2
 rich==13.7.1
 folium==0.14.0
+geocoder==1.38.1
+requests==2.31.0
