@@ -6,6 +6,11 @@ import folium
 from streamlit_folium import folium_static
 import geocoder
 import requests
+import cv2
+import urllib.request
+import numpy as np
+from ultralytics import YOLO
+import tempfile
 
 st.set_page_config(page_icon="♻️")
 
@@ -17,6 +22,15 @@ st.sidebar.image("rgf.png", width=200)
 st.sidebar.title("Navigasi")
 halaman = st.sidebar.radio("Pilih halaman:", ["Beranda", "User", "Driver", "Tanya Chatbot"])
 
+# Inisialisasi session state
+if 'users' not in st.session_state:
+    st.session_state.users = {}
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+    st.session_state.logged_user = None
+if 'show_signup' not in st.session_state:
+    st.session_state.show_signup = False
+
 if halaman == "Beranda":
     st.title("♻️ Waste Flow ")
     st.subheader("Sistem Pemantauan dan Klasifikasi Sampah Berbasis AI")
@@ -24,12 +38,6 @@ if halaman == "Beranda":
     st.write("WasteFlow adalah sistem berbasis AI dan IoT yang memanfaatkan kamera dan teknologi pengenalan objek untuk memilah sampah serta memantau jumlahnya secara real-time. Sistem ini secara otomatis mengirim notifikasi kepada petugas kebersihan dan menyajikan analisis data kepada masyarakat guna meningkatkan kesadaran serta partisipasi dalam pengelolaan sampah berkelanjutan. Selain itu, WasteFlow mendukung perumusan kebijakan lingkungan yang lebih tepat melalui data yang akurat dan up-to-date.")
 
 elif halaman == "User":
-    import cv2
-    import urllib.request
-    import numpy as np
-    from ultralytics import YOLO
-    import tempfile
-
     st.title("♻️ Monitoring Sampah")
 
     # --- Ambil data dari Ubidots ---
@@ -46,7 +54,7 @@ elif halaman == "User":
             else:
                 st.error(f"Gagal mengambil data {variable}. Status code: {response.status_code}")
                 return None
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             st.error(f"Error: {e}")
             return None
 
@@ -95,21 +103,9 @@ elif halaman == "User":
         except Exception as e:
             st.error(f"❌ Gagal mengambil atau memproses gambar: {e}")
 
-    # --- Hapus tracking fiktif ---
-    # Bagian ini dihapus sesuai permintaan
-
 elif halaman == "Driver":
     st.title("♻️ Halaman Driver Sampah")
     st.write("Silakan daftar dan login untuk menggunakan layanan driver sampah.")
-
-    # Inisialisasi session state
-    if 'users' not in st.session_state:
-        st.session_state.users = {}
-    if 'logged_in' not in st.session_state:
-        st.session_state.logged_in = False
-        st.session_state.logged_user = None
-    if 'show_signup' not in st.session_state:
-        st.session_state.show_signup = False
 
     # Tampilkan form hanya jika belum login
     if not st.session_state.logged_in:
@@ -146,35 +142,32 @@ elif halaman == "Driver":
             else:
                 st.error("❌ Nomor HP atau password salah.")
 
-        
+    if st.session_state.logged_in:
+        # Tampilkan peta jika sudah login
+        st.markdown("---")
+        st.subheader("📍 Lokasi Anda & Tong Sampah")
 
-    # Tampilkan peta jika sudah login
-if st.session_state.logged_in:
-    st.markdown("---")
-    st.subheader("📍 Lokasi Anda & Tong Sampah")
+        lokasi_driver = geocoder.ip('me').latlng or [-6.200, 106.816]
 
-    lokasi_driver = geocoder.ip('me').latlng or [-6.200, 106.816]
+        # Daftar lokasi tong sampah
+        lokasi_tong_list = [
+            {"nama": "Tong Sampah MAN 9", "lokasi": [-6.240920384479476, 106.91067582361595]},
+            {"nama": "Tong Sampah SMA 71 ", "lokasi": [-6.241870872587285, 106.9117994757494]},
+            {"nama": "Tong Sampah Puskesmas Duren Sawit", "lokasi": [-6.241985021106573, 106.91109136189029]},
+            {"nama": "Tong Sampah Masjid Daarul 'Ilmi", "lokasi": [-6.240678193236319, 106.90698684039081]},
+            {"nama": "Tong Sampah OYO 842 Arafuru Residence", "lokasi": [-6.23982503696325, 106.90968580798639]},
+        ]
 
-    # Daftar lokasi tong sampah
-    lokasi_tong_list = [
-        {"nama": "Tong Sampah MAN 9", "lokasi": [-6.240920384479476, 106.91067582361595]},
-        {"nama": "Tong Sampah SMA 71 ", "lokasi": [-6.241870872587285, 106.9117994757494]},
-        {"nama": "Tong Sampah Puskesmas Duren Sawit", "lokasi": [-6.241985021106573, 106.91109136189029]},
-        {"nama": "Tong Sampah Masjid Daarul 'Ilmi", "lokasi": [-6.240678193236319, 106.90698684039081]},
-        {"nama": "Tong Sampah OYO 842 Arafuru Residence", "lokasi": [-6.23982503696325, 106.90968580798639]},
-    ]
+        # Buat peta
+        m = folium.Map(location=lokasi_driver, zoom_start=15)
+        folium.Marker(lokasi_driver, popup="Lokasi Anda", icon=folium.Icon(color='green')).add_to(m)
 
-    # Buat peta
-    m = folium.Map(location=lokasi_driver, zoom_start=15)
-    folium.Marker(lokasi_driver, popup="Lokasi Anda", icon=folium.Icon(color='green')).add_to(m)
+        # Tambahkan marker untuk semua tong
+        for tong in lokasi_tong_list:
+            folium.Marker(tong["lokasi"], popup=tong["nama"], icon=folium.Icon(color='red')).add_to(m)
+            folium.PolyLine([lokasi_driver, tong["lokasi"]], color='blue', weight=2, opacity=0.6).add_to(m)
 
-    # Tambahkan marker untuk semua tong
-    for tong in lokasi_tong_list:
-        folium.Marker(tong["lokasi"], popup=tong["nama"], icon=folium.Icon(color='red')).add_to(m)
-        folium.PolyLine([lokasi_driver, tong["lokasi"]], color='blue', weight=2, opacity=0.6).add_to(m)
-
-    folium_static(m)
-
+        folium_static(m)
 
 elif halaman == "Tanya Chatbot":
     retriever = init_vectorstore()
@@ -197,9 +190,3 @@ elif halaman == "Tanya Chatbot":
                 Tips: Coba gunakan nama yang lebih spesifik, seperti:
                 - 'Botol minuman plastik' daripada 'botol'
                 - 'Sisa sayuran' daripada 'sisa makanan'
-                """)
-            elif "Terjadi kesalahan" in jawaban:
-                st.error(jawaban)
-            else:
-                st.success(jawaban)
-                st.balloons()
