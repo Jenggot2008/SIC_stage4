@@ -13,6 +13,7 @@ geocoder==1.38.1
 requests==2.31.0
 streamlit-folium==0.18.0 
 opencv-python==4.7.0.72
+opencv-python==4.5.1.48
 chromadb==0.4.24
 ultralytics==8.0.83
 numpy==1.24.2
