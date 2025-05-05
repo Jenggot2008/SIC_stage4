@@ -33,6 +33,31 @@ init_session_state()
 
 # Sidebar (Navbar kiri)
 st.sidebar.image("rgf.png", width=200)
+st.markdown("""
+    <style>
+    /* Perbesar judul sidebar */
+    [data-testid="stSidebar"] h1 {
+        font-size: 28px;
+    }
+
+    /* Perbesar label radio dan spasi */
+    [data-testid="stSidebar"] label {
+        font-size: 20px;
+    }
+
+    /* Perbesar tulisan pilihan radio */
+    .stRadio > div {
+        gap: 1rem;
+    }
+
+    /* Opsi tambahan: perbesar padding sidebar */
+    [data-testid="stSidebar"] {
+        padding: 2rem 1.5rem;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Sidebar
 st.sidebar.title("Navigasi")
 halaman = st.sidebar.radio("Pilih halaman:", ["Beranda", "User", "Driver", "Tanya Chatbot"])
 
@@ -368,21 +393,7 @@ def halaman_driver():
                 <p>Nyalakan pelacakan untuk memulai pemantauan</p>
             </div>
             """, unsafe_allow_html=True)
-
-def get_location():
-    loc_js = """
-    <script>
-    navigator.geolocation.getCurrentPosition(
-        position => {
-            const loc = position.coords.latitude + "," + position.coords.longitude;
-            window.parent.document.getElementById('location').value = loc;
-        }
-    );
-    </script>
-    """
-    components.html(loc_js, height=0)
-    return st.text_input("Location", key="location")
-    
+        
         # Dashboard Overview
         st.subheader("📊 Dashboard Pemantauan")
         
