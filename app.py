@@ -4,7 +4,6 @@ from vectorstore import init_vectorstore
 from llm import ask_gemini
 import folium
 from streamlit_folium import folium_static
-import streamlit.components.v1 as components
 import geocoder
 import requests
 import cv2
@@ -33,31 +32,6 @@ init_session_state()
 
 # Sidebar (Navbar kiri)
 st.sidebar.image("rgf.png", width=200)
-st.markdown("""
-    <style>
-    /* Perbesar judul sidebar */
-    [data-testid="stSidebar"] h1 {
-        font-size: 28px;
-    }
-
-    /* Perbesar label radio dan spasi */
-    [data-testid="stSidebar"] label {
-        font-size: 20px;
-    }
-
-    /* Perbesar tulisan pilihan radio */
-    .stRadio > div {
-        gap: 1rem;
-    }
-
-    /* Opsi tambahan: perbesar padding sidebar */
-    [data-testid="stSidebar"] {
-        padding: 2rem 1.5rem;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# Sidebar
 st.sidebar.title("Navigasi")
 halaman = st.sidebar.radio("Pilih halaman:", ["Beranda", "User", "Driver", "Tanya Chatbot"])
 
@@ -264,27 +238,6 @@ def halaman_driver():
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
-        .location-status {
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-        }
-        .location-active {
-            background-color: #e8f5e9;
-            border-left: 5px solid #4CAF50;
-        }
-        .location-inactive {
-            background-color: #ffebee;
-            border-left: 5px solid #f44336;
-        }
-        .task-card {
-            transition: all 0.3s ease;
-            margin-bottom: 10px;
-        }
-        .task-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-        }
     </style>
     """, unsafe_allow_html=True)
 
@@ -341,59 +294,6 @@ def halaman_driver():
     if st.session_state.logged_in:
         st.success(f"Selamat datang, Driver {st.session_state.logged_user}!")
         
-        # Initialize location tracking in session state
-        if 'location_active' not in st.session_state:
-            st.session_state.location_active = False
-        if 'driver_location' not in st.session_state:
-            st.session_state.driver_location = None
-        
-        # Location Tracking Section
-        st.subheader("📍 Pelacakan Lokasi")
-        
-        # Location status indicator
-        location_status = st.empty()
-        
-        # Toggle location button
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            if st.button("🔵 Aktifkan Pelacakan" if not st.session_state.location_active else "🔴 Matikan Pelacakan"):
-                st.session_state.location_active = not st.session_state.location_active
-                if st.session_state.location_active:
-                    st.toast("Pelacakan lokasi diaktifkan", icon="✅")
-                else:
-                    st.toast("Pelacakan lokasi dimatikan", icon="⛔")
-                st.rerun()
-        
-        with col2:
-            if st.session_state.location_active:
-                try:
-                    # Get current location
-                    g = geocoder.ip('me')
-                    if g.latlng:
-                        st.session_state.driver_location = g.latlng
-                        st.success(f"Lokasi terbaru: {g.latlng[0]:.4f}, {g.latlng[1]:.4f}")
-                    else:
-                        st.warning("Tidak dapat mendapatkan lokasi saat ini")
-                except Exception as e:
-                    st.error(f"Error mendapatkan lokasi: {str(e)}")
-                    st.session_state.location_active = False
-        
-        # Update location status display
-        if st.session_state.location_active:
-            location_status.markdown("""
-            <div class="location-status location-active">
-                <h4>🟢 PELACAKAN AKTIF</h4>
-                <p>Lokasi Anda sedang dipantau secara real-time</p>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            location_status.markdown("""
-            <div class="location-status location-inactive">
-                <h4>🔴 PELACAKAN NON-AKTIF</h4>
-                <p>Nyalakan pelacakan untuk memulai pemantauan</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
         # Dashboard Overview
         st.subheader("📊 Dashboard Pemantauan")
         
@@ -405,42 +305,30 @@ def halaman_driver():
         with col3:
             st.metric("Rating Driver", "⭐ 4.8", "0.2 ↑")
         
-        # Map Section with real-time location
-        st.subheader("🗺️ Peta Lokasi Real-time")
+        # Map Section
+        st.subheader("📍 Pemetaan Lokasi Pengambilan")
+        
+        lokasi_driver = geocoder.ip('me').latlng or [-6.200, 106.816]
+        
+        lokasi_tong_list = [
+            {"nama": "Tong Sampah MAN 9", "lokasi": [-6.240920384479476, 106.91067582361595], "status": "Penuh", "warna": "red"},
+            {"nama": "Tong Sampah SMA 71", "lokasi": [-6.241870872587285, 106.9117994757494], "status": "Sedang", "warna": "orange"},
+            {"nama": "Tong Sampah Puskesmas", "lokasi": [-6.241985021106573, 106.91109136189029], "status": "Kosong", "warna": "green"},
+            {"nama": "Tong Sampah Masjid", "lokasi": [-6.240678193236319, 106.90698684039081], "status": "Penuh", "warna": "red"},
+            {"nama": "Tong Sampah Residence", "lokasi": [-6.23982503696325, 106.90968580798639], "status": "Sedang", "warna": "orange"},
+        ]
         
         with st.container(border=True):
-            # Use either current location or default
-            map_center = st.session_state.driver_location if st.session_state.driver_location else [-6.200, 106.816]
+            m = folium.Map(location=lokasi_driver, zoom_start=15)
             
-            m = folium.Map(location=map_center, zoom_start=15)
-            
-            # Add driver location if available
-            if st.session_state.driver_location:
-                folium.Marker(
-                    location=st.session_state.driver_location,
-                    popup="Lokasi Anda Saat Ini",
-                    icon=folium.Icon(color='green', icon='user', prefix='fa')
-                ).add_to(m)
-                
-                # Add moving marker for better visualization
-                folium.CircleMarker(
-                    location=st.session_state.driver_location,
-                    radius=8,
-                    color='green',
-                    fill=True,
-                    fill_color='green',
-                    popup="Posisi Terkini"
-                ).add_to(m)
+            # Add driver location
+            folium.Marker(
+                location=lokasi_driver,
+                popup="Lokasi Anda",
+                icon=folium.Icon(color='green', icon='user')
+            ).add_to(m)
             
             # Add trash bins
-            lokasi_tong_list = [
-                {"nama": "Tong Sampah MAN 9", "lokasi": [-6.240920384479476, 106.91067582361595], "status": "Penuh", "warna": "red"},
-                {"nama": "Tong Sampah SMA 71", "lokasi": [-6.241870872587285, 106.9117994757494], "status": "Sedang", "warna": "orange"},
-                {"nama": "Tong Sampah Puskesmas", "lokasi": [-6.241985021106573, 106.91109136189029], "status": "Kosong", "warna": "green"},
-                {"nama": "Tong Sampah Masjid", "lokasi": [-6.240678193236319, 106.90698684039081], "status": "Penuh", "warna": "red"},
-                {"nama": "Tong Sampah Residence", "lokasi": [-6.23982503696325, 106.90968580798639], "status": "Sedang", "warna": "orange"},
-            ]
-            
             for tong in lokasi_tong_list:
                 folium.Marker(
                     location=tong["lokasi"],
@@ -448,14 +336,14 @@ def halaman_driver():
                     icon=folium.Icon(color=tong["warna"], icon='trash')
                 ).add_to(m)
                 
-                if st.session_state.driver_location:
-                    folium.PolyLine(
-                        [st.session_state.driver_location, tong["lokasi"]],
-                        color='blue',
-                        weight=2,
-                        opacity=0.6,
-                        tooltip=f"Jarak: {np.random.randint(500, 2000)} meter"
-                    ).add_to(m)
+                # Add route line
+                folium.PolyLine(
+                    [lokasi_driver, tong["lokasi"]],
+                    color='blue',
+                    weight=2,
+                    opacity=0.6,
+                    tooltip=f"Jarak: {np.random.randint(500, 2000)} meter"
+                ).add_to(m)
             
             folium_static(m, height=400)
         
@@ -477,15 +365,10 @@ def halaman_driver():
                 if cols[3].button("Mulai", key=f"btn_{task['lokasi']}"):
                     st.success(f"Tugas di {task['lokasi']} dimulai!")
         
-        # Auto-refresh when location is active
-        if st.session_state.location_active:
-            st.experimental_rerun()
-        
         # Logout button
         if st.button("🚪 Logout"):
             st.session_state.logged_in = False
             st.session_state.logged_user = None
-            st.session_state.location_active = False
             st.success("Anda telah logout")
             st.rerun()
 
