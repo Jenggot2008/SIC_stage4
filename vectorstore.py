@@ -1,21 +1,19 @@
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceBgeEmbeddings, HuggingFaceEmbeddings
 import os
 
 def init_vectorstore():
-    # Initialize embeddings
-    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    try:
+        # Try the preferred lightweight embeddings first
+        embeddings = HuggingFaceBgeEmbeddings(
+            model_name="BAAI/bge-small-en-v1.5",
+            model_kwargs={'device': 'cpu'},
+            encode_kwargs={'normalize_embeddings': True}
+        )
+    except ImportError:
+        # Fallback to default embeddings
+        embeddings = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2",
+            model_kwargs={'device': 'cpu'}
+        )
     
-    # Set Chroma persistence directory
-    persist_directory = "chroma_db"
-    if not os.path.exists(persist_directory):
-        os.makedirs(persist_directory)
-    
-    # Initialize Chroma
-    vector_store = Chroma(
-        collection_name="sampah_collection",
-        embedding_function=embeddings,
-        persist_directory=persist_directory
-    )
-    
-    return vector_store.as_retriever()
+    # Rest of your ChromaDB initialization code...
