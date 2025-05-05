@@ -369,7 +369,7 @@ def halaman_driver():
             </div>
             """, unsafe_allow_html=True)
 
-        def get_location():
+def get_location():
     loc_js = """
     <script>
     navigator.geolocation.getCurrentPosition(
