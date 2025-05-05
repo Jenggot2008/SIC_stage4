@@ -14,3 +14,6 @@ requests==2.31.0
 streamlit-folium==0.18.0 
 opencv-python==4.7.0.72
 chromadb==0.4.24
+ultralytics==8.0.83
+numpy==1.24.2
+Pillow==9.3.0
