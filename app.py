@@ -84,42 +84,46 @@ def halaman_user():
     
     # URL kamera yang digunakan untuk mengambil gambar
     URL = "http://192.168.153.238/cam-mid.jpg"  # Sesuaikan IP dengan kamera yang digunakan
-    MODEL_PATH = "yolo11n.pt"  # Path ke model YOLO yang sudah dilatih
     
-    # Memuat model YOLO
-    model = YOLO(MODEL_PATH)
+    # Try using a smaller YOLO model that's available by default
+    try:
+        # Try loading a pretrained YOLOv8n model (smallest version)
+        model = YOLO('yolov8n.pt')  # This will download the model if not found locally
+        
+        if st.button("🔍 Jalankan Deteksi"):
+            try:
+                # Ambil gambar dari URL
+                img_resp = urllib.request.urlopen(URL, timeout=2)
+                img_np = np.array(bytearray(img_resp.read()), dtype=np.uint8)
+                img = cv2.imdecode(img_np, cv2.IMREAD_COLOR)
+                img = cv2.flip(img, 0)  # Membalikkan gambar jika perlu
+                
+                # Deteksi objek menggunakan YOLO
+                results = model(img, stream=True)
+                for result in results:
+                    boxes = result.boxes
+                    for box in boxes:
+                        x1, y1, x2, y2 = map(int, box.xyxy[0])
+                        conf = float(box.conf[0])
+                        cls_id = int(box.cls[0])
+                        label = model.names[cls_id]
+                        
+                        # Menambahkan bounding box dan label ke gambar
+                        cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 1)
+                        cv2.putText(img, f"{label} {conf:.2f}", (x1, y1 - 5),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
 
-    if st.button("🔍 Jalankan Deteksi"):
-        try:
-            # Ambil gambar dari URL
-            img_resp = urllib.request.urlopen(URL, timeout=2)
-            img_np = np.array(bytearray(img_resp.read()), dtype=np.uint8)
-            img = cv2.imdecode(img_np, cv2.IMREAD_COLOR)
-            img = cv2.flip(img, 0)  # Membalikkan gambar jika perlu
-            
-            # Deteksi objek menggunakan YOLO
-            results = model(img, stream=True)
-            for result in results:
-                boxes = result.boxes
-                for box in boxes:
-                    x1, y1, x2, y2 = map(int, box.xyxy[0])
-                    conf = float(box.conf[0])
-                    cls_id = int(box.cls[0])
-                    label = model.names[cls_id]
-                    
-                    # Menambahkan bounding box dan label ke gambar
-                    cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 1)
-                    cv2.putText(img, f"{label} {conf:.2f}", (x1, y1 - 5),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
-
-            # Menyimpan gambar hasil deteksi ke sementara file
-            _, output_img = tempfile.mkstemp(suffix=".jpg")
-            cv2.imwrite(output_img, img)
-            
-            # Menampilkan gambar hasil deteksi di Streamlit
-            st.image(output_img, caption="Deteksi Kamera (YOLO)", use_column_width=True)
-        except Exception as e:
-            st.error(f"❌ Gagal mengambil atau memproses gambar: {e}")
+                # Menyimpan gambar hasil deteksi ke sementara file
+                _, output_img = tempfile.mkstemp(suffix=".jpg")
+                cv2.imwrite(output_img, img)
+                
+                # Menampilkan gambar hasil deteksi di Streamlit
+                st.image(output_img, caption="Deteksi Kamera (YOLO)", use_column_width=True)
+            except Exception as e:
+                st.error(f"❌ Gagal mengambil atau memproses gambar: {e}")
+    except Exception as e:
+        st.error(f"❌ Gagal memuat model YOLO: {e}")
+        st.info("Pastikan model YOLO tersedia atau gunakan model yang dapat diunduh otomatis.")
 
 # Halaman Driver
 def halaman_driver():
