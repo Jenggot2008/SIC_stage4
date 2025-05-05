@@ -1,37 +1,33 @@
-# Langchain dan LLM
-langchain==0.1.6
+streamlit==1.32.0
 langchain-community==0.0.29
-langchain-core==0.1.22
-google-generativeai==0.3.2
+sentence-transformers==2.2.2
+faiss-cpu==1.7.2  # Versi lebih stabil untuk Cloud
+numpy==1.26.4
+pillow==10.1.0
+opencv-python-headless==4.9.0.80
+streamlit==1.32.0
+langchain-community==0.0.29
+chromadb==0.4.22  # Downgrade versi
+sentence-transformers==2.2.2
+numpy==1.26.4
+pysqlite3-binary==0.5.2
+# Base
+streamlit==1.32.0
+python-dotenv==1.0.1
 
-# Embedding dan vektor
-chromadb==0.4.24
-fastembed==0.2.3
-faiss-cpu==1.7.4  # Ditambahkan untuk solusi alternatif vector store
-sentence-transformers==2.2.2  # Untuk embedding yang lebih ringan
+# AI Core
+torch==2.2.1 --extra-index-url https://download.pytorch.org/whl/cpu
+transformers==4.37.2
+
+# Vector Stores
+faiss-cpu==1.7.2
+chromadb==0.4.22
+
+# Computer Vision
+ultralytics==8.1.27
+opencv-python-headless==4.9.0.80
+pillow==10.1.0
 
 # Utilitas
-python-dotenv==1.0.1
-rich==13.7.1
-
-# Web dan tampilan
-streamlit==1.32.0
-streamlit-folium==0.18.0
-folium==0.14.0
-
-# Lokasi & Permintaan HTTP
-geocoder==1.38.1
-requests==2.31.0
-
-# CV dan AI deteksi objek
-opencv-python-headless==4.9.0.80  # Gunakan versi headless untuk Streamlit Cloud
-ultralytics==8.1.27
 numpy==1.26.4
-Pillow==10.1.0  # Versi terbaru yang kompatibel
-
-# SQLite
-pysqlite3-binary==0.5.2
-
-# Dependensi tambahan untuk kompatibilitas
-typing-extensions==4.9.0
-tqdm==4.66.1
+requests==2.31.0
