@@ -4,6 +4,7 @@ from vectorstore import init_vectorstore
 from llm import ask_gemini
 import folium
 from streamlit_folium import folium_static
+import streamlit.components.v1 as components
 import geocoder
 import requests
 import cv2
@@ -367,7 +368,26 @@ def halaman_driver():
                 <p>Nyalakan pelacakan untuk memulai pemantauan</p>
             </div>
             """, unsafe_allow_html=True)
-        
+
+        def get_location():
+    loc_js = """
+    <script>
+    navigator.geolocation.getCurrentPosition(
+        position => {
+            const loc = position.coords.latitude + "," + position.coords.longitude;
+            window.parent.document.getElementById('location').value = loc;
+        }
+    );
+    </script>
+    """
+    components.html(loc_js, height=0)
+    return st.text_input("Location", key="location")
+
+location = get_location()
+if location:
+    lat, lng = map(float, location.split(','))
+    st.session_state.driver_location = [lat, lng]
+    
         # Dashboard Overview
         st.subheader("📊 Dashboard Pemantauan")
         
