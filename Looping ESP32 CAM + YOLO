@@ -1,0 +1,101 @@
+import cv2
+import urllib.request
+import numpy as np
+import time
+import requests  # untuk HTTP request
+from ultralytics import YOLO
+
+# === Konfigurasi ===
+ESP32_CAM_URL = "http://192.168.153.238/cam-mid.jpg"     # IP ESP32-CAM (ganti sesuai IP kamu)
+ESP32_SERVO_URL = "http://192.168.153.235/servo"         # IP ESP32 biasa (untuk servo)
+MODEL_PATH = "yolo11n.pt"
+FPS = 30
+
+# === Load Model YOLO ===
+model = YOLO(MODEL_PATH)
+
+# === Kelas Target ===
+class_command_map = {
+    # Servo 1 (B3)
+    66: '1',  # keyboard
+    67: '1',  # cell phone
+    8: '1',  # boat
+    6: '1',  # train
+
+    # Servo 2 (Organik)
+    46: '2',  # banana
+    47: '2',  # apple
+    48: '2',  # sandwich
+    49: '2',  # orange
+    50: '2',  # broccoli
+    51: '2',  # carrot
+    52: '2',  # hot dog
+    53: '2',  # pizza
+    54: '2',  # donut
+    55: '2',  # cake
+
+    # Servo 3 (Anorganik)
+    39: '3',  # bottle
+    40: '3'   # wine glass
+}
+
+# === Loop utama ===
+while True:
+    try:
+        start_time = time.time()
+
+        # Ambil gambar dari ESP32-CAM
+        img_resp = urllib.request.urlopen(ESP32_CAM_URL, timeout=1)
+        img_np = np.array(bytearray(img_resp.read()), dtype=np.uint8)
+        img = cv2.imdecode(img_np, cv2.IMREAD_COLOR)
+
+        # Rotasi jika perlu
+        img = cv2.flip(img, 0)
+
+        # Deteksi dengan YOLO
+        results = model(img, stream=True)
+
+        detected_classes = set()
+
+        for result in results:
+            for box in result.boxes:
+                cls_id = int(box.cls[0])
+                conf = float(box.conf[0])
+                x1, y1, x2, y2 = map(int, box.xyxy[0])
+                label = f"{model.names[cls_id]} {conf:.2f}"
+
+                # Gambar bounding box dan label
+                cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 1)
+                cv2.putText(img, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
+
+                if cls_id in class_command_map:
+                    detected_classes.add(cls_id)
+
+        # Kirim perintah ke ESP32 (melalui HTTP GET)
+        if detected_classes:
+            for cls_id in detected_classes:
+                command = class_command_map[cls_id]
+                try:
+                    requests.get(f"{ESP32_SERVO_URL}?cmd={command}", timeout=0.5)
+                    print(f"Kelas {cls_id} terdeteksi. Mengirim HTTP: {command}")
+                except Exception as e:
+                    print("Gagal mengirim HTTP:", e)
+        else:
+            try:
+                requests.get(f"{ESP32_SERVO_URL}?cmd=0", timeout=0.5)
+                print("Tidak ada kelas target. Mengirim HTTP: 0")
+            except Exception as e:
+                print("Gagal mengirim HTTP:", e)
+
+        # Tampilkan hasil
+        cv2.imshow("ESP32-CAM + YOLO Detection", img)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+        elapsed = time.time() - start_time
+        time.sleep(max(0, 1 / FPS - elapsed))
+
+    except Exception as e:
+        print("Error:", e)
+
+cv2.destroyAllWindows()
