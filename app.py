@@ -190,3 +190,9 @@ elif halaman == "Tanya Chatbot":
                 Tips: Coba gunakan nama yang lebih spesifik, seperti:
                 - 'Botol minuman plastik' daripada 'botol'
                 - 'Sisa sayuran' daripada 'sisa makanan'
+                """)
+            elif "Terjadi kesalahan" in jawaban:
+                st.error(jawaban)
+            else:
+                st.success(jawaban)
+                st.balloons()
