@@ -1,20 +1,31 @@
+# Langchain dan LLM
 langchain==0.1.6
 langchain_community==0.0.19
 langchain_core==0.1.22
+google-generativeai==0.3.2
+
+# Embedding dan vektor
 chromadb==0.4.24
 fastembed==0.2.3
-google-generativeai==0.3.2
+
+# Utilitas
 python-dotenv==1.0.1
-streamlit==1.30.0
-pysqlite3-binary==0.5.2
 rich==13.7.1
+
+# Web dan tampilan
+streamlit==1.30.0
+streamlit-folium==0.18.0
 folium==0.14.0
+
+# Lokasi & Permintaan HTTP
 geocoder==1.38.1
 requests==2.31.0
-streamlit-folium==0.18.0 
-opencv-python==4.7.0.72
-opencv-python==4.5.1.48
-chromadb==0.4.24
+
+# CV dan AI deteksi objek
+opencv-python==4.7.0.72  # Gunakan salah satu versi, ini yang lebih baru
 ultralytics==8.0.83
 numpy==1.24.2
 Pillow==9.3.0
+
+# SQLite
+pysqlite3-binary==0.5.2
