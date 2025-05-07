@@ -21,7 +21,8 @@ folium==0.14.0
 geocoder==1.38.1
 requests==2.31.0
 
-sentence-transformers==1.0.3
+sentence-transformers==2.2.2
+
 
 # CV dan AI deteksi objek
 opencv-python==4.7.0.72  # Gunakan salah satu versi, ini yang lebih baru
