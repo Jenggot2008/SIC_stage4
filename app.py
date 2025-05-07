@@ -3,6 +3,8 @@ from db import init_db
 from vectorstore import init_vectorstore
 from llm import ask_gemini
 import folium
+from langchain.vectorstores import FAISS
+from langchain.embeddings import HuggingFaceEmbeddings
 from streamlit_folium import folium_static
 import geocoder
 import requests
