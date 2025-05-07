@@ -7,6 +7,8 @@ google-generativeai==0.3.2
 # Embedding dan vektor
 chromadb==0.4.24
 fastembed==0.2.3
+scikit-learn==1.2.2
+xgboost==2.0.3
 
 # Utilitas
 python-dotenv==1.0.1
